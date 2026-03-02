@@ -1,185 +1,156 @@
-<!-- Requirements -->
-## Requirements
-This HelloID Service Automation Delegated Form uses the [Exchange Online PowerShell V2 module](https://docs.microsoft.com/en-us/powershell/exchange/exchange-online-powershell-v2?view=exchange-ps)
+# HelloID-Conn-SA-Full-Exchange-Online-DistributionGroupManageMemberships
 
-<!-- Description -->
+| :information_source: Information |
+| :------------------------------- |
+| This repository contains the connector and configuration code only. The implementer is responsible for acquiring the connection details such as organization name, application ID, certificate, etc. You might need to coordinate with the client's application manager before implementing this connector. |
+
 ## Description
-This HelloID Service Automation Delegated Form provides Exchange Online (Office365) distribution group functionality. The following steps will be performed:
- 1. Search and select the Exchange Online group
- 2. Select the owner(s)
- 3. Select the member(s)
- 4. After confirmation the updates are processed (add or remove AD group members and/or owners)
+HelloID-Conn-SA-Full-Exchange-Online-DistributionGroupManageMemberships is a delegated form designed for use with HelloID Service Automation (SA). It can be imported into HelloID and customized according to your requirements.
 
-## Versioning
-| Version | Description | Date |
-| - | - | - |
-| 1.2.0   | Updated to connect using a certificate | 2022/10/13  |
-| 1.1.0   | Updated to use the Exchange v2 module | 2022/05/09  |
-| 1.0.0   | Initial release | 2022/03/28  |
+By using this delegated form, you can manage distribution group memberships in Exchange Online. The following options are available:
 
-<!-- TABLE OF CONTENTS -->
-## Table of Contents
-- [Requirements](#requirements)
-- [Description](#description)
-- [Versioning](#versioning)
-- [Table of Contents](#table-of-contents)
-- [All-in-one PowerShell setup script](#all-in-one-powershell-setup-script)
-- [Requirements](#requirements-1)
-- [Getting started](#getting-started)
-- [Installing the Microsoft Exchange Online PowerShell V2 module](#installing-the-microsoft-exchange-online-powershell-v2-module)
-- [Creating the Azure AD App Registration and certificate](#creating-the-azure-ad-app-registration-and-certificate)
-  - [Application Registration](#application-registration)
-  - [Configuring App Permissions](#configuring-app-permissions)
-  - [Generate a self-signed certificate](#generate-a-self-signed-certificate)
-  - [Attach the certificate to the Azure AD application](#attach-the-certificate-to-the-azure-ad-application)
-  - [Assign Azure AD roles to the application](#assign-azure-ad-roles-to-the-application)
-  - [Authentication and Authorization](#authentication-and-authorization)
-- [Post-setup configuration](#post-setup-configuration)
-- [Manual resources](#manual-resources)
-  - [Powershell data source 'Exchange-Online-group-generate-table-wildcard v2'](#powershell-data-source-exchange-online-group-generate-table-wildcard-v2)
-  - [Powershell data source 'Exchange-online-user-generate-table v2'](#powershell-data-source-exchange-online-user-generate-table-v2)
-  - [Powershell data source 'Exchange-Online-group-generate-table-owners v2'](#powershell-data-source-exchange-online-group-generate-table-owners-v2)
-  - [Powershell data source 'Exchange-Online-group-generate-table-members v2'](#powershell-data-source-exchange-online-group-generate-table-members-v2)
-  - [Delegated form task 'Exchange Online - Group - Manage memberships'](#delegated-form-task-exchange-online---group---manage-memberships)
-- [Getting help](#getting-help)
-- [Getting help](#getting-help-1)
-- [HelloID Docs](#helloid-docs)
-
-
-## All-in-one PowerShell setup script
-The PowerShell script "createform.ps1" contains a complete PowerShell script using the HelloID API to create the complete Form including user defined variables, tasks and data sources.
-
- _Please note that this script asumes none of the required resources do exists within HelloID. The script does not contain versioning or source control_
-
-
-## Requirements
-- Installed and available [Microsoft Exchange Online PowerShell V2 module](https://docs.microsoft.com/en-us/powershell/exchange/exchange-online-powershell-v2?view=exchange-ps)
-- To manage users, mailboxes and groups, the service account has to have the role "**Exchange Administrator**" assigned.
-- Required to run **On-Premises** since it is not allowed to import a module with the Cloud Agent.
-- **Concurrent sessions** in HelloID set to a **maximum of 1**! If this is any higher than 1, this may cause errors, since Exchange only support a maximum of 3 sessions per minute.
-- Since we create a Remote PS Session on the agent server (which will containt the Exchange Session, to avoid the Exchange limit of 3 sessions per minute), the service account has to be a member of the group “**Remote Management Users**”.
-- An __App Registration in Azure AD__ is required. __Please follow the [Microsoft documentation](https://learn.microsoft.com/en-us/powershell/exchange/app-only-auth-powershell-v2?view=exchange-ps#step-3-generate-a-self-signed-certificate:~:text=Appendix-,Step%201%3A%20Register%20the%20application%20in%20Azure%20AD,-Note) as reference to configure the App Registration correctly__
-
+1. Search and select a distribution group (wildcard search by display name, description, or mail)
+2. View current group members
+3. Select users to add to or remove from the distribution group via a dual list
+   - The left part of the dual list shows all available users
+   - The right part of the dual list shows the users who are currently members of the distribution group
+4. Apply membership changes to the distribution group in Exchange Online
+   - Users moved to the left part of the dual list will be removed from the group
+   - Users moved to the right part of the dual list will be added to the group
 
 ## Getting started
-Please follow the documentation steps on [HelloID Docs](https://docs.helloid.com/hc/en-us/articles/360017556559-Service-automation-GitHub-resources) in order to setup and run the All-in one Powershell Script in your own environment.
+### Requirements
 
-<!-- GETTING STARTED -->
-## Installing the Microsoft Exchange Online PowerShell V2 module
-By using this connector you will have the ability to manage groupmemberships and/or ownerships to a group.
-Since we use the cmdlets from the Microsoft Exchange Online PowerShell V2 module, it is required this module is installed and available for the service account.
-Please follow the [Microsoft documentation on how to install the module](https://docs.microsoft.com/en-us/powershell/exchange/exchange-online-powershell-v2?view=exchange-ps#install-the-exo-v2-module). 
+#### App Registration & Certificate Setup
 
+Before implementing this connector, make sure to configure a Microsoft Entra ID App Registration. During the setup process, you'll create a new App Registration in the Entra portal, assign the necessary API permissions, and generate and assign a certificate.
 
-## Creating the Azure AD App Registration and certificate
-> _The steps below are based on the [Microsoft documentation](https://docs.microsoft.com/en-us/powershell/exchange/app-only-auth-powershell-v2?view=exchange-ps) as of the moment of release. The Microsoft documentation should always be leading and susceptible to change. The steps below might not reflect those changes._
+Follow the official Microsoft documentation for creating an App Registration and setting up certificate-based authentication:
 
-### Application Registration
-The first step is to register a new <b>Azure Active Directory Application</b>. The application is used to connect to Exchange and to manage permissions.
+- [App-only authentication with certificate (Exchange Online)](https://learn.microsoft.com/en-us/powershell/exchange/app-only-auth-powershell-v2?view=exchange-ps#set-up-app-only-authentication)
 
-* Navigate to <b>App Registrations</b> in Azure, and select “New Registration” (<b>Azure Portal > Azure Active Directory > App Registration > New Application Registration</b>).
-* Next, give the application a name. In this example we are using “<b>ExO PowerShell CBA</b>” as application name.
-* Specify who can use this application (<b>Accounts in this organizational directory only</b>).
-* Specify the Redirect URI. You can enter any url as a redirect URI value. In this example we used http://localhost because it doesn't have to resolve.
-* Click the “<b>Register</b>” button to finally create your new application.
+#### HelloID-specific configuration
 
-Some key items regarding the application are the Application ID (which is the Client ID), the Directory ID (which is the Tenant ID) and Client Secret.
+Once you have completed the Microsoft setup and followed their best practices, configure the following HelloID-specific requirements.
 
-### Configuring App Permissions
-The [Microsoft Graph documentation](https://docs.microsoft.com/en-us/graph) provides details on which permission are required for each permission type.
+- **API Permissions (Application permissions):**
+  - `Group.Read.All` - To read distribution group information
+  - `GroupMember.Read.All` - To read distribution group memberships
+  - `User.Read.All` - To list all users via Graph API for the dual list
+  - `Exchange.ManageAsApp` - To manage distribution group memberships
+- **Entra ID Role assignment:**
+  - Assign the **Exchange Recipient Administrator** (or appropriate Exchange administrative) role to the App Registration
+- **Certificate:**
+  - Upload the public key file (.cer) in Entra ID
+  - Provide the certificate as a Base64 string in HelloID. For instructions on creating the certificate and obtaining the base64 string, refer to our forum post: [Setting up a certificate for Microsoft Graph API in HelloID connectors](https://forum.helloid.com/forum/helloid-provisioning/5338-instruction-setting-up-a-certificate-for-microsoft-graph-api-in-helloid-connectors#post5338)
 
-To assign your application the right permissions, navigate to <b>Azure Portal > Azure Active Directory > App Registrations</b>.
-Select the application we created before, and select “<b>API Permissions</b>” or “<b>View API Permissions</b>”.
-To assign a new permission to your application, click the “<b>Add a permission</b>” button.
-From the “<b>Request API Permissions</b>” screen click “<b>Office 365 Exchange Online</b>”.
-For this connector the following permissions are used as <b>Application permissions</b>:
-*	Manage Exchange As Application <b><i>Exchange.ManageAsApp</i></b>
-> _The Office 365 Exchange Online might not be a selectable API. In thise case, select "APIs my organization uses" and search here for "Office 365 Exchange Online"__
+### Connection settings
 
-To grant admin consent to our application press the “<b>Grant admin consent for TENANT</b>” button.
+The following global variables must be configured in HelloID when importing and configuring the delegated form.
 
-### Generate a self-signed certificate
-For app-only authentication in Azure AD, you typically use a certificate to request access. Anyone who has the certificate and its private key can use the app, and the permissions granted to the app.
-Create and configure a self-signed X.509 certificate, which will be used to authenticate your Application against Azure AD, while requesting the app-only access token.
-The fastest and recommened way to do so is by using the script below:
+| Setting                        | Description                                               | Mandatory |
+| ------------------------------ | --------------------------------------------------------- | --------- |
+| EntraIdOrganization            | The Entra organization name (domain)                      | Yes       |
+| EntraIdTenantId                | The unique identifier (ID) of your Entra ID tenant        | Yes       |
+| EntraIdAppId                   | The unique identifier (ID) of the App Registration in Microsoft Entra ID | Yes |
+| EntraIdCertificateBase64String | The Base64-encoded string representation of the app certificate | Yes |
+| EntraIdCertificatePassword     | The password associated with the app certificate          | Yes       |
 
-```
-$dnsName = "contoso.org"
-$password = "P@ssw0Rd1234"
+## Remarks
 
-# Create certificate
-$mycert = New-SelfSignedCertificate -DnsName $dnsName -CertStoreLocation "cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(1) -KeySpec KeyExchange
+### Performance Optimization Strategy
 
-# Export certificate to .pfx file
-$mycert | Export-PfxCertificate -FilePath mycert.pfx -Password $(ConvertTo-SecureString -String $password -AsPlainText -Force)
+The connector prioritizes the use of Microsoft Graph API over Exchange Online PowerShell cmdlets wherever possible. The Graph API is significantly faster for data retrieval (Exchange Online cmdlets can take longer to execute, while Graph API typically responds in under a second). However, certain Exchange-specific data and operations are not available via Graph API and still require the Exchange Online module.
 
-# Export certificate to .cer file
-$mycert | Export-Certificate -FilePath mycert.cer
-```
+### Where Graph API is Used
 
-### Attach the certificate to the Azure AD application
-To attach your certificate to your application, navigate to <b>Azure Portal > Azure Active Directory > App Registrations</b>.
-Select the application we created before, and select “<b>Certificates & secrets</b>”.
-On the Certificates & secrets page that opens, click the “<b>Upload certificate</b>” button.
-In the dialog that opens, browse to the self-signed certificate (.cer file) that we created before.
-When you're finished, click Add.
-The certificate is now shown in the Certificates section.
+**Distribution group search:**
+- Uses Microsoft Graph API to search for distribution groups
+- Filter: `NOT groupTypes/any(c:c eq 'Unified') and mailEnabled eq true and securityEnabled eq false` (mail-enabled security groups that are not Unified/Microsoft 365 groups)
+- Supports wildcard search on display name, description, and mail fields
+- When `*` is provided as search value, all distribution groups are retrieved
+- Why Graph API: Faster retrieval and supports advanced filtering capabilities
 
-### Assign Azure AD roles to the application
-Azure AD has more than 50 admin roles available. The Global Administrator and Exchange Administrator roles provide the required permissions for any task in Exchange Online PowerShell. For general instructions about assigning roles in Azure AD, see [View and assign administrator roles in Azure Active Directory](https://learn.microsoft.com/en-us/azure/active-directory/roles/manage-roles-portal).
+**User object retrieval (dual list - left side):**
+- All available users are retrieved from Microsoft Graph API
+- Properties returned: `id`, `userPrincipalName`, `displayName`, `mail`
+- Why Graph API: Fastest method to retrieve user objects
 
-To assign the role(s) to your application, navigate to <b>Azure Portal > Azure Active Directory > Roles and administrators</b>.
-On the Roles and administrators page that opens, find and select one of the supported roles e.g. “<b>Exchange Administrator</b>” by clicking on the name of the role (not the check box) in the results.
-On the Assignments page that opens, click the “<b>Add assignments</b>” button.
-In the Add assignments flyout that opens, find and select the app that we created before.
-When you're finished, click Add.
-Back on the Assignments page, verify that the app has been assigned to the role.
+**Group members retrieval (dual list - right side):**
+- Current group members are retrieved from Microsoft Graph API using the `/groups/{id}/members` endpoint
+- Properties returned: `id`, `displayName`, `userPrincipalName`
+- Why Graph API: Faster retrieval and all necessary user properties are returned directly from the members query
 
-### Authentication and Authorization
-There are multiple ways to authenticate to Exchange Online using a certificate with each has its own pros and cons, in this example we are using the option where we connect using a certificate thumbprint and therefore the Certificate has to be locally installed.
+### Where Exchange Online Module is Used
 
-*	First we need to get the <b>Client ID</b>, go to the <b>Azure Portal > Azure Active Directory > App Registrations</b>.
-*	Select your application and copy the Application (client) ID value.
-*	After we have the Client ID we also have to get the <b>Certificate Thumbprint</b>.
-*	From the Azure Portal, go to <b>Azure Active Directory > App Registrations</b>.
-*	Select the application we have created before, and select "<b>Certificates and Secrets</b>". 
-*	Under “Certificates” copy the value of the “<b>Thumbprint</b>”.
-*	At last we need to <b>install the certificate on the HelloID Agent server</b>. This has to be locally installed since we work with the thumbprint only and not the certificate itself.
- 
-## Post-setup configuration
-After the all-in-one PowerShell script has run and created all the required resources. The following items need to be configured according to your own environment
- 1. Update the following [user defined variables](https://docs.helloid.com/hc/en-us/articles/360014169933-How-to-Create-and-Manage-User-Defined-Variables)
+**Group membership management:**
+- Uses `Add-DistributionGroupMember` cmdlet to add users to distribution groups
+- Uses `Remove-DistributionGroupMember` cmdlet to remove users from distribution groups
+- Why Exchange Online: These membership management operations are Exchange-specific and not available via Graph API
 
-| Variable name                             | Description                                   | Example value     |
-| ----------------------------------------- | --------------------------------------------- | ----------------- |
-| AADExchangeOrganization               | The name of the organization to connect to and where the Azure AD App Registration exist                        | enyoi.onmicrosoft.com   |
-| AADExchangeAppID               | The Application (client) ID of the Azure AD App Registration with Exchange Permissions. __Please follow the [Microsoft documentation](https://learn.microsoft.com/en-us/powershell/exchange/app-only-auth-powershell-v2?view=exchange-ps#step-3-generate-a-self-signed-certificate:~:text=Appendix-,Step%201%3A%20Register%20the%20application%20in%20Azure%20AD,-Note) as reference to configure the App Registration correctly__                       | 12345678-7a40-4882-8db2-abcdefghijkl          |
-| Azure AD Certificate Thumbprint | The thumbprint of the certificate that is linked to the Azure AD App Registration __Please note: This certificate has to be locally installed__| ********          |
+### Group Filtering
 
+- **Supported Group Types:** The connector filters groups to include distribution groups (mail-enabled security groups). It excludes:
+  - Microsoft 365 groups (Unified groups)
+  - Security groups (non-mail-enabled)
+  - Dynamic distribution groups
 
-## Manual resources
-This Delegated Form uses the following resources in order to run
+### Wildcard Search
 
-### Powershell data source 'Exchange-Online-group-generate-table-wildcard v2'
-This Powershell data source gathers the available groups (that match the provided wildcard searchstring).
+- **Search Functionality:** Users can search for distribution groups using a wildcard (`*`) to return all distribution groups, or by entering partial text to search across display name, description, and mail fields. This provides flexible group discovery based on multiple attributes.
 
-### Powershell data source 'Exchange-online-user-generate-table v2'
-This Powershell data source queries and returns all available users.
+### Certificate-Based Authentication
 
-### Powershell data source 'Exchange-Online-group-generate-table-owners v2'
-This Powershell data source queries and returns the owners of the group.
+- **JWT Token Generation:** The connector uses certificate-based authentication to generate JSON Web Tokens (JWT) for secure communication with Microsoft Graph API. The certificate is converted from a base64 string and used to sign the JWT assertion for OAuth2 authentication.
 
-### Powershell data source 'Exchange-Online-group-generate-table-members v2'
-This Powershell data source queries and returns the members of the group.
+### Error Handling
 
-### Delegated form task 'Exchange Online - Group - Manage memberships'
-This delegated form task will update the group members and/or owners.
+- **Duplicate Member Addition:** If attempting to add a user who is already a member of the distribution group, the operation is skipped with an appropriate audit log entry rather than failing.
+- **Member Removal:** If attempting to remove a user who is not a member or if the group no longer exists, the operation is skipped with an informational audit log entry.
+
+## Development resources
+
+### API endpoints
+
+The following Microsoft Graph API endpoints are used by the connector:
+
+| Endpoint | Description |
+| -------- | ----------- |
+| /v1.0/users | List users |
+| /v1.0/groups | List distribution groups |
+| /v1.0/groups/{id}/members | List group members |
+
+### PowerShell Cmdlets
+
+The following PowerShell cmdlets are used by the connector:
+
+| Cmdlet | Description |
+| ------ | ----------- |
+| Connect-ExchangeOnline | Establish session to Exchange Online using certificate-based app-only authentication |
+| Add-DistributionGroupMember | Add a user to a distribution group |
+| Remove-DistributionGroupMember | Remove a user from a distribution group |
+| Disconnect-ExchangeOnline | Close the Exchange Online session |
+
+### Documentation
+
+For more information on the APIs and PowerShell cmdlets used in this connector, please refer to:
+
+**Microsoft Graph API:**
+- [Authentication with certificate](https://learn.microsoft.com/graph/auth-v2-service)
+- [List users](https://learn.microsoft.com/en-us/graph/api/user-list)
+- [List groups](https://learn.microsoft.com/en-us/graph/api/group-list)
+- [List group members](https://learn.microsoft.com/en-us/graph/api/group-list-members)
+
+**Exchange Online PowerShell:**
+- [Exchange Online PowerShell overview](https://learn.microsoft.com/powershell/exchange/exchange-online-powershell)
+- [Connect-ExchangeOnline](https://learn.microsoft.com/powershell/module/exchange/connect-exchangeonline)
+- [Add-DistributionGroupMember](https://learn.microsoft.com/powershell/module/exchange/add-distributiongroupmember)
+- [Remove-DistributionGroupMember](https://learn.microsoft.com/powershell/module/exchange/remove-distributiongroupmember)
+- [Disconnect-ExchangeOnline](https://learn.microsoft.com/powershell/module/exchange/disconnect-exchangeonline)
 
 ## Getting help
-> _For more information on how to configure a HelloID PowerShell connector, please refer to our [documentation](https://docs.helloid.com/hc/en-us/articles/360012518799-How-to-add-a-target-system) pages_
+> :bulb: **Tip:**  
+> For more information on Delegated Forms, please refer to our [documentation](https://docs.helloid.com/en/service-automation/delegated-forms.html) pages.
 
-## Getting help
-_If you need help, feel free to ask questions on our [forum](https://forum.helloid.com/forum/helloid-connectors/service-automation/804-helloid-sa-exchange-online-manage-group-members-and-or-owners)_
-
-## HelloID Docs
-The official HelloID documentation can be found at: https://docs.helloid.com/
+## HelloID docs
+The official HelloID documentation can be found at: [https://docs.helloid.com/](https://docs.helloid.com/)
