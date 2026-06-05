@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.1] - 2026-06-05
+
+### Changed
+
+- Converted GitHub callout syntax to table format for better compatibility with text editors
+- 
 ## [2.0.0] - 2026-03-02
 
 This is a major version release with a complete refactor to migrate from Azure AD to Entra ID, implement Microsoft Graph API integration, and align with the new HelloID template standards. This version focuses exclusively on **member management** for distribution groups, with owner management functionality removed in favor of a separate dedicated form following HelloID best practices.
